@@ -136,7 +136,7 @@ export interface PcmPlaybackResult {
   /** Absolute AudioContext time when this chunk finishes (for queueing). */
   endTime: number;
   /** Odd trailing byte to prepend on the next chunk (stream alignment). */
-  leftover: Uint8Array;
+  leftover: Uint8Array<ArrayBuffer>;
 }
 
 /**
@@ -162,7 +162,10 @@ export function playPcmBase64(
   combined.set(incoming, leftoverBytes.length);
 
   const usableLength = combined.length - (combined.length % 2);
-  const leftover = combined.slice(usableLength);
+  // Copy so leftover is always ArrayBuffer-backed (TS 5.7+/DOM lib strictness).
+  const leftover: Uint8Array<ArrayBuffer> = new Uint8Array(
+    combined.subarray(usableLength),
+  );
 
   if (usableLength === 0) {
     return { source: null, endTime: startAt, leftover };
