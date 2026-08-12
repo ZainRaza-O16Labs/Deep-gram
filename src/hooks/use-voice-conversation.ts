@@ -92,7 +92,7 @@ export function useVoiceConversation() {
   const playbackContextRef = useRef<AudioContext | null>(null);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const nextPlayTimeRef = useRef(0);
-  const pcmLeftoverRef = useRef<Uint8Array>(new Uint8Array(0));
+  const pcmLeftoverRef = useRef(new Uint8Array(0));
   const statusRef = useRef<ConversationStatus>(ConversationStatus.Idle);
   const shouldReconnectRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);

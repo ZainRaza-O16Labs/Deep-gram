@@ -162,8 +162,7 @@ export function playPcmBase64(
   combined.set(incoming, leftoverBytes.length);
 
   const usableLength = combined.length - (combined.length % 2);
-  // Copy into a fresh ArrayBuffer-backed view (avoids Uint8Array<ArrayBufferLike> mismatch).
-  const leftover = new Uint8Array(combined.subarray(usableLength));
+  const leftover = combined.slice(usableLength);
 
   if (usableLength === 0) {
     return { source: null, endTime: startAt, leftover };
