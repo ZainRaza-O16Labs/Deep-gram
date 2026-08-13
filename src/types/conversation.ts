@@ -22,7 +22,7 @@ export interface TranscriptEntry {
 }
 
 export type ClientToServerMessage =
-  | { type: "start_session"; speakModel?: string }
+  | { type: "start_session"; speakModel?: string; elevenLabsVoiceId?: string }
   | { type: "stop_session" }
   | { type: "audio"; data: string };
 

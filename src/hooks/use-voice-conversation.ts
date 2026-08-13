@@ -98,6 +98,7 @@ export function useVoiceConversation() {
   const reconnectAttemptsRef = useRef(0);
   /** Speak model chosen before Start; reused on reconnect. */
   const speakModelRef = useRef<string | undefined>(undefined);
+  const elevenLabsVoiceIdRef = useRef<string | undefined>(undefined);
 
   const stopPlayback = useCallback(() => {
     activeSourcesRef.current.forEach((source) => {
@@ -227,6 +228,9 @@ export function useVoiceConversation() {
         ...(speakModelRef.current
           ? { speakModel: speakModelRef.current }
           : {}),
+        ...(elevenLabsVoiceIdRef.current
+          ? { elevenLabsVoiceId: elevenLabsVoiceIdRef.current }
+          : {}),
       });
     };
 
@@ -277,9 +281,10 @@ export function useVoiceConversation() {
   }, [cleanupMedia, handleServerMessage, sendMessage]);
 
   const startConversation = useCallback(
-    async (speakModel?: string) => {
+    async (speakModel?: string, elevenLabsVoiceId?: string) => {
       try {
         speakModelRef.current = speakModel;
+        elevenLabsVoiceIdRef.current = elevenLabsVoiceId;
         setTranscripts([]);
         setErrorMessage(null);
         shouldReconnectRef.current = true;

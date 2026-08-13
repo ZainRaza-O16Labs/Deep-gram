@@ -1,16 +1,16 @@
 "use client";
 
 import {
-  AURA_VOICE_OPTIONS,
-  DEFAULT_AURA_SPEAK_MODEL,
-} from "@/lib/aura-voices";
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  ELEVENLABS_VOICE_OPTIONS,
+} from "@/lib/elevenlabs-voices";
 import { ConversationStatus } from "@/types/conversation";
 
 interface ConversationControlsProps {
   status: ConversationStatus;
   errorMessage: string | null;
-  speakModel: string;
-  onSpeakModelChange: (speakModel: string) => void;
+  elevenLabsVoiceId: string;
+  onElevenLabsVoiceIdChange: (voiceId: string) => void;
   onStart: () => void;
   onStop: () => void;
 }
@@ -18,8 +18,8 @@ interface ConversationControlsProps {
 export function ConversationControls({
   status,
   errorMessage,
-  speakModel,
-  onSpeakModelChange,
+  elevenLabsVoiceId,
+  onElevenLabsVoiceIdChange,
   onStart,
   onStop,
 }: ConversationControlsProps) {
@@ -34,8 +34,6 @@ export function ConversationControls({
     status === ConversationStatus.Thinking ||
     status === ConversationStatus.Speaking;
 
-  const voiceSelectEnabled = canStart;
-
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="flex flex-col items-center gap-2">
@@ -49,12 +47,12 @@ export function ConversationControls({
           <select
             id="voice-picker"
             aria-labelledby="voice-picker-label"
-            value={speakModel || DEFAULT_AURA_SPEAK_MODEL}
-            disabled={!voiceSelectEnabled}
-            onChange={(event) => onSpeakModelChange(event.target.value)}
-            className="h-11 min-w-[11.5rem] cursor-pointer appearance-none rounded-full border border-border bg-surface-elevated py-0 pl-5 pr-11 text-sm font-semibold text-foreground shadow-sm outline-none transition enabled:hover:border-accent enabled:focus-visible:border-accent enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-55"
+            value={elevenLabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID}
+            disabled={!canStart}
+            onChange={(event) => onElevenLabsVoiceIdChange(event.target.value)}
+            className="h-11 min-w-[16rem] cursor-pointer appearance-none rounded-full border border-border bg-surface-elevated py-0 pl-5 pr-11 text-sm font-semibold text-foreground shadow-sm outline-none transition enabled:hover:border-accent enabled:focus-visible:border-accent enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {AURA_VOICE_OPTIONS.map((voice) => (
+            {ELEVENLABS_VOICE_OPTIONS.map((voice) => (
               <option key={voice.id} value={voice.id}>
                 {voice.label}
               </option>

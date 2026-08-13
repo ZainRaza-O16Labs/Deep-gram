@@ -6,11 +6,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { TranscriptPanel } from "@/components/transcript-panel";
 import { VoiceIndicator } from "@/components/voice-indicator";
 import { useVoiceConversation } from "@/hooks/use-voice-conversation";
-import { DEFAULT_AURA_SPEAK_MODEL } from "@/lib/aura-voices";
+import { DEFAULT_ELEVENLABS_VOICE_ID } from "@/lib/elevenlabs-voices";
 import { ConversationStatus } from "@/types/conversation";
 
 export function VoiceAssistant() {
-  const [speakModel, setSpeakModel] = useState(DEFAULT_AURA_SPEAK_MODEL);
+  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(
+    DEFAULT_ELEVENLABS_VOICE_ID,
+  );
   const {
     status,
     transcripts,
@@ -53,10 +55,10 @@ export function VoiceAssistant() {
         <ConversationControls
           status={status}
           errorMessage={errorMessage}
-          speakModel={speakModel}
-          onSpeakModelChange={setSpeakModel}
+          elevenLabsVoiceId={elevenLabsVoiceId}
+          onElevenLabsVoiceIdChange={setElevenLabsVoiceId}
           onStart={() => {
-            void startConversation(speakModel);
+            void startConversation(undefined, elevenLabsVoiceId);
           }}
           onStop={stopConversation}
         />
