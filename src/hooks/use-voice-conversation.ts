@@ -131,6 +131,19 @@ export function useVoiceConversation() {
     socket.send(JSON.stringify(message));
   }, []);
 
+  const ensureMicrophone = useCallback(async () => {
+    if (micRef.current) {
+      return;
+    }
+
+    const microphone = createMicrophoneStream((pcmBase64) => {
+      sendMessage({ type: "audio", data: pcmBase64 });
+    });
+
+    await microphone.start();
+    micRef.current = microphone;
+  }, [sendMessage]);
+
   const handleServerMessage = useCallback(
     (message: ServerToClientMessage) => {
       switch (message.type) {
@@ -138,18 +151,26 @@ export function useVoiceConversation() {
           setSessionId(message.sessionId);
           statusRef.current = ConversationStatus.Listening;
           setStatus(ConversationStatus.Listening);
+          void ensureMicrophone();
           break;
         case "session_stopped":
-          statusRef.current = ConversationStatus.Idle;
-          setStatus(ConversationStatus.Idle);
-          setSessionId(null);
-          cleanupMedia();
+          // Server may restart a session on the same socket. Keep the mic
+          // if the user is still in a call, otherwise speech never goes out.
+          if (!shouldReconnectRef.current) {
+            statusRef.current = ConversationStatus.Idle;
+            setStatus(ConversationStatus.Idle);
+            setSessionId(null);
+            cleanupMedia();
+          }
           break;
         case "status":
           statusRef.current = message.status;
           setStatus(message.status);
           break;
         case "user_started_speaking":
+          stopPlayback();
+          break;
+        case "clear_audio":
           stopPlayback();
           break;
         case "transcript":
@@ -203,7 +224,7 @@ export function useVoiceConversation() {
           break;
       }
     },
-    [cleanupMedia, stopPlayback],
+    [cleanupMedia, ensureMicrophone, stopPlayback],
   );
 
   const connect = useCallback(() => {
@@ -252,9 +273,10 @@ export function useVoiceConversation() {
 
     socket.onclose = () => {
       socketRef.current = null;
-      cleanupMedia();
+      stopPlayback();
 
       if (!shouldReconnectRef.current) {
+        cleanupMedia();
         setStatus((current) =>
           current === ConversationStatus.Error
             ? current
@@ -278,7 +300,7 @@ export function useVoiceConversation() {
         connect();
       }, Math.min(1000 * attempt, 5000));
     };
-  }, [cleanupMedia, handleServerMessage, sendMessage]);
+  }, [cleanupMedia, handleServerMessage, sendMessage, stopPlayback]);
 
   const startConversation = useCallback(
     async (speakModel?: string, elevenLabsVoiceId?: string) => {
@@ -289,12 +311,7 @@ export function useVoiceConversation() {
         setErrorMessage(null);
         shouldReconnectRef.current = true;
 
-        const microphone = createMicrophoneStream((pcmBase64) => {
-          sendMessage({ type: "audio", data: pcmBase64 });
-        });
-
-        await microphone.start();
-        micRef.current = microphone;
+        await ensureMicrophone();
         connect();
       } catch (error) {
         const message =
@@ -307,7 +324,7 @@ export function useVoiceConversation() {
         cleanupMedia();
       }
     },
-    [cleanupMedia, connect, sendMessage],
+    [cleanupMedia, connect, ensureMicrophone],
   );
 
   const stopConversation = useCallback(() => {

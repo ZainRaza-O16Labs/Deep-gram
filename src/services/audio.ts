@@ -81,6 +81,9 @@ export function createMicrophoneStream(
       });
 
       audioContext = new AudioContext();
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
       source = audioContext.createMediaStreamSource(mediaStream);
       processor = audioContext.createScriptProcessor(4096, 1, 1);
       // Keep the processor alive without playing mic into the speakers (echo).
