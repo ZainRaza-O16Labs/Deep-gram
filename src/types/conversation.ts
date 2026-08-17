@@ -24,7 +24,8 @@ export interface TranscriptEntry {
 export type ClientToServerMessage =
   | { type: "start_session"; speakModel?: string; elevenLabsVoiceId?: string }
   | { type: "stop_session" }
-  | { type: "audio"; data: string };
+  | { type: "audio"; data: string }
+  | { type: "user_text"; text: string };
 
 export type ServerToClientMessage =
   | { type: "session_started"; sessionId: string }
@@ -39,5 +40,15 @@ export type ServerToClientMessage =
       entryId: string;
     }
   | { type: "audio"; data: string; sampleRate: number }
+  | { type: "clear_audio" }
+  | {
+      type: "turn_latency";
+      query: string;
+      sttFinalMs: number | null;
+      llmFirstTextMs: number | null;
+      ttsFirstAudioMs: number | null;
+      totalMs: number;
+      reason: string;
+    }
   | { type: "error"; message: string }
   | { type: "pong" };
