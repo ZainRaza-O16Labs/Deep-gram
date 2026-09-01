@@ -33,40 +33,62 @@ function parseEnvFile(filePath: string): Record<string, string> {
   return parsed;
 }
 
-function publicVoiceEnv(env: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  const id1 = (env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID ||
-    env.ELEVENLABS_VOICE_ID ||
-    env.ELEVENLABS_VOICE_ID_1 ||
-    "").trim();
-  const name1 = (env.NEXT_PUBLIC_ELEVENLABS_VOICE_NAME ||
-    env.ELEVENLABS_VOICE_NAME ||
-    env.ELEVENLABS_VOICE_NAME_1 ||
-    "").trim();
-  if (id1) {
-    out.NEXT_PUBLIC_ELEVENLABS_VOICE_ID = id1;
-  }
-  if (name1) {
-    out.NEXT_PUBLIC_ELEVENLABS_VOICE_NAME = name1;
-  }
+function collectVoiceOptions(env: Record<string, string>) {
+  const options: Array<{ id: string; label: string }> = [];
+  const push = (
+    id: string | undefined,
+    name: string | undefined,
+    index: number,
+  ) => {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      return;
+    }
+    options.push({
+      id: trimmedId,
+      label: name?.trim() || `Voice ${index}`,
+    });
+  };
+
+  push(
+    env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID ||
+      env.ELEVENLABS_VOICE_ID ||
+      env.ELEVENLABS_VOICE_ID_1,
+    env.NEXT_PUBLIC_ELEVENLABS_VOICE_NAME ||
+      env.ELEVENLABS_VOICE_NAME ||
+      env.ELEVENLABS_VOICE_NAME_1,
+    1,
+  );
   for (let index = 2; index <= 9; index += 1) {
-    const id = (
+    push(
       env[`NEXT_PUBLIC_ELEVENLABS_VOICE_ID_${index}`] ||
-      env[`ELEVENLABS_VOICE_ID_${index}`] ||
-      ""
-    ).trim();
-    const name = (
+        env[`ELEVENLABS_VOICE_ID_${index}`],
       env[`NEXT_PUBLIC_ELEVENLABS_VOICE_NAME_${index}`] ||
-      env[`ELEVENLABS_VOICE_NAME_${index}`] ||
-      ""
-    ).trim();
-    if (id) {
-      out[`NEXT_PUBLIC_ELEVENLABS_VOICE_ID_${index}`] = id;
-    }
-    if (name) {
-      out[`NEXT_PUBLIC_ELEVENLABS_VOICE_NAME_${index}`] = name;
-    }
+        env[`ELEVENLABS_VOICE_NAME_${index}`],
+      index,
+    );
   }
+  return options;
+}
+
+function publicVoiceEnv(env: Record<string, string>): Record<string, string> {
+  const voices = collectVoiceOptions(env);
+  const out: Record<string, string> = {
+    NEXT_PUBLIC_ELEVENLABS_VOICES: JSON.stringify(voices),
+  };
+  const first = voices[0];
+  if (first) {
+    out.NEXT_PUBLIC_ELEVENLABS_VOICE_ID = first.id;
+    out.NEXT_PUBLIC_ELEVENLABS_VOICE_NAME = first.label;
+  }
+  voices.forEach((voice, index) => {
+    if (index === 0) {
+      return;
+    }
+    const slot = index + 1;
+    out[`NEXT_PUBLIC_ELEVENLABS_VOICE_ID_${slot}`] = voice.id;
+    out[`NEXT_PUBLIC_ELEVENLABS_VOICE_NAME_${slot}`] = voice.label;
+  });
   return out;
 }
 

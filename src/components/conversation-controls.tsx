@@ -48,11 +48,15 @@ export function ConversationControls({
             onChange={(event) => onElevenLabsVoiceIdChange(event.target.value)}
             className="h-11 w-full cursor-pointer appearance-none rounded-full border border-border bg-white py-0 pl-4 pr-10 text-sm font-medium text-foreground outline-none transition enabled:hover:border-accent enabled:focus-visible:border-accent enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {ELEVENLABS_VOICE_OPTIONS.map((voice) => (
-              <option key={voice.id} value={voice.id}>
-                {voice.label}
-              </option>
-            ))}
+            {ELEVENLABS_VOICE_OPTIONS.length === 0 ? (
+              <option value="">No voices configured</option>
+            ) : (
+              ELEVENLABS_VOICE_OPTIONS.map((voice, index) => (
+                <option key={`${voice.id}-${index}`} value={voice.id}>
+                  {voice.label}
+                </option>
+              ))
+            )}
           </select>
           <span
             aria-hidden
