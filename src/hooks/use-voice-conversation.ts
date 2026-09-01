@@ -214,6 +214,14 @@ export function useVoiceConversation() {
           stopPlayback();
           break;
         case "transcript":
+          if (
+            message.role === SpeakerRole.Assistant &&
+            message.text.trim().startsWith("{") &&
+            /"found"\s*:/.test(message.text)
+          ) {
+            stopPlayback();
+            break;
+          }
           setTranscripts((previous) =>
             mergeTranscriptEntry(previous, {
               id: message.entryId,
