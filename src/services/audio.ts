@@ -152,7 +152,7 @@ function resampleToRate(
   toRate: number,
 ): Float32Array {
   if (fromRate === toRate || samples.length === 0) {
-    return samples;
+    return new Float32Array(samples);
   }
 
   const ratio = fromRate / toRate;
@@ -221,7 +221,7 @@ export function playPcmBase64(
     playback.length,
     audioContext.sampleRate,
   );
-  buffer.copyToChannel(playback, 0);
+  buffer.getChannelData(0).set(playback);
 
   const source = audioContext.createBufferSource();
   source.buffer = buffer;
