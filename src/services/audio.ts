@@ -146,6 +146,30 @@ export interface PcmPlaybackResult {
  * Decode linear16 PCM and schedule it after `startAt` so streamed chunks
  * play back-to-back instead of all overlapping at once.
  */
+function resampleToRate(
+  samples: Float32Array,
+  fromRate: number,
+  toRate: number,
+): Float32Array {
+  if (fromRate === toRate || samples.length === 0) {
+    return samples;
+  }
+
+  const ratio = fromRate / toRate;
+  const newLength = Math.max(1, Math.round(samples.length / ratio));
+  const result = new Float32Array(newLength);
+
+  for (let index = 0; index < newLength; index += 1) {
+    const src = index * ratio;
+    const left = Math.min(Math.floor(src), samples.length - 1);
+    const right = Math.min(left + 1, samples.length - 1);
+    const frac = src - left;
+    result[index] = (samples[left] ?? 0) * (1 - frac) + (samples[right] ?? 0) * frac;
+  }
+
+  return result;
+}
+
 export function playPcmBase64(
   base64Audio: string,
   sampleRate: number,
@@ -187,16 +211,24 @@ export function playPcmBase64(
     floatSamples[index] = intSample / 0x8000;
   }
 
-  const buffer = audioContext.createBuffer(1, floatSamples.length, sampleRate);
-  buffer.copyToChannel(floatSamples, 0);
+  const playback = resampleToRate(
+    floatSamples,
+    sampleRate,
+    audioContext.sampleRate,
+  );
+  const buffer = audioContext.createBuffer(
+    1,
+    playback.length,
+    audioContext.sampleRate,
+  );
+  buffer.copyToChannel(playback, 0);
 
   const source = audioContext.createBufferSource();
   source.buffer = buffer;
   source.connect(audioContext.destination);
 
-  // Schedule after previous chunk; apply small 30ms jitter buffer if starting new utterance
   const now = audioContext.currentTime;
-  const when = startAt > now ? startAt : now + 0.03;
+  const when = startAt > now ? startAt : now;
   source.start(when);
 
   return {

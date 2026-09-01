@@ -26,10 +26,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${fraunces.variable} h-full overflow-hidden antialiased`}
     >
       <body
-        className="min-h-full flex flex-col font-sans"
+        className="flex h-full flex-col overflow-hidden font-sans"
         suppressHydrationWarning
       >
         {children}

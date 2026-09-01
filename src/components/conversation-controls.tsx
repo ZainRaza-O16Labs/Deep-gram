@@ -35,22 +35,18 @@ export function ConversationControls({
     status === ConversationStatus.Speaking;
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex flex-col items-center gap-2">
-        <span
-          id="voice-picker-label"
-          className="text-xs font-semibold uppercase tracking-[0.14em] text-muted"
-        >
-          Voice
-        </span>
-        <div className="relative">
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative min-w-0 flex-1 sm:max-w-[16rem]">
+          <label htmlFor="voice-picker" className="sr-only">
+            Voice
+          </label>
           <select
             id="voice-picker"
-            aria-labelledby="voice-picker-label"
             value={elevenLabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID}
             disabled={!canStart}
             onChange={(event) => onElevenLabsVoiceIdChange(event.target.value)}
-            className="h-11 min-w-[16rem] cursor-pointer appearance-none rounded-full border border-border bg-surface-elevated py-0 pl-5 pr-11 text-sm font-semibold text-foreground shadow-sm outline-none transition enabled:hover:border-accent enabled:focus-visible:border-accent enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-55"
+            className="h-11 w-full cursor-pointer appearance-none rounded-full border border-border bg-white py-0 pl-4 pr-10 text-sm font-medium text-foreground outline-none transition enabled:hover:border-accent enabled:focus-visible:border-accent enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-55"
           >
             {ELEVENLABS_VOICE_OPTIONS.map((voice) => (
               <option key={voice.id} value={voice.id}>
@@ -60,7 +56,7 @@ export function ConversationControls({
           </select>
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-muted"
+            className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-muted"
           >
             <svg
               width="12"
@@ -79,28 +75,30 @@ export function ConversationControls({
             </svg>
           </span>
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={!canStart}
-          className="h-11 rounded-full bg-accent px-7 text-sm font-semibold text-on-accent transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          Start Conversation
-        </button>
-        <button
-          type="button"
-          onClick={onStop}
-          disabled={!canStop}
-          className="h-11 rounded-full border border-border bg-surface-elevated px-7 text-sm font-semibold text-foreground shadow-sm transition enabled:hover:border-danger enabled:hover:text-danger disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          Stop Conversation
-        </button>
+        <div className="flex items-center gap-2">
+          {canStart ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="h-11 rounded-full bg-accent px-6 text-sm font-semibold text-on-accent shadow-sm transition hover:brightness-110"
+            >
+              Start conversation
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onStop}
+              disabled={!canStop}
+              className="h-11 rounded-full border border-danger/30 bg-white px-6 text-sm font-semibold text-danger shadow-sm transition enabled:hover:bg-danger enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Stop
+            </button>
+          )}
+        </div>
       </div>
       {errorMessage ? (
-        <p className="max-w-md text-center text-sm text-danger" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {errorMessage}
         </p>
       ) : null}

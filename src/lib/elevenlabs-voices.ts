@@ -5,17 +5,17 @@ export interface ElevenLabsVoiceOption {
 
 export const ELEVENLABS_VOICE_OPTIONS: readonly ElevenLabsVoiceOption[] = [
   {
-    id: "tDWqpJqVfmGuscYiTW4S",
+    id: "K8TmlPGWoNFZwl9ZwDu7",
     label: "American male assistant",
   },
   {
-    id: "4JTAzuWlfPW7E9flqztf",
+    id: "SFQTpGJ7hNAESg374Mnp",
     label: "American female assistant",
   },
   {
-    id: "ge8osjHb74eUeZF0JRiV",
+    id: "GeLH5bYcMs6If67U5gtP",
     label: "Casual boy",
   },
 ] as const;
 
-export const DEFAULT_ELEVENLABS_VOICE_ID = "tDWqpJqVfmGuscYiTW4S";
+export const DEFAULT_ELEVENLABS_VOICE_ID = "K8TmlPGWoNFZwl9ZwDu7";

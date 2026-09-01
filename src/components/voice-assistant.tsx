@@ -24,34 +24,47 @@ export function VoiceAssistant() {
   } = useVoiceConversation();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-6 py-8 sm:gap-8 sm:py-10">
-      <header className="flex shrink-0 flex-col items-center gap-3 text-center">
-        <p className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">
-          Hey Sage
-        </p>
-        <p className="max-w-lg text-sm leading-relaxed text-foreground/80 sm:text-base">
-          Talk naturally , Sage picks up when you finish
-          a thought, with live transcripts.
-        </p>
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-5 py-3.5 sm:px-6">
+        <div className="min-w-0">
+          <p className="font-display text-2xl leading-none tracking-tight text-foreground sm:text-[1.7rem]">
+            Hey Sage
+          </p>
+          <p className="mt-1 hidden text-xs text-muted sm:block">
+            Talk naturally — Sage answers when you finish a thought.
+          </p>
+        </div>
         <StatusBadge status={status} />
       </header>
 
-      <section className="grid shrink-0 grid-cols-2 gap-4 sm:gap-6">
-        <VoiceIndicator
-          active={
-            isListening || status === ConversationStatus.Connecting
-          }
-          label="Microphone"
-          tone="listening"
-        />
-        <VoiceIndicator
-          active={isSpeaking || status === ConversationStatus.Thinking}
-          label="Assistant"
-          tone="speaking"
-        />
-      </section>
+      <TranscriptPanel
+        entries={transcripts}
+        listening={isListening}
+        speaking={isSpeaking}
+        thinking={status === ConversationStatus.Thinking}
+        idle={
+          status === ConversationStatus.Idle ||
+          status === ConversationStatus.Disconnected
+        }
+      />
 
-      <div className="shrink-0">
+      <footer className="shrink-0 border-t border-border/70 bg-white/80 px-5 py-3 backdrop-blur-md sm:px-6">
+        <div className="mb-2.5 flex items-center gap-2">
+          <VoiceIndicator
+            compact
+            active={
+              isListening || status === ConversationStatus.Connecting
+            }
+            label="You"
+            tone="listening"
+          />
+          <VoiceIndicator
+            compact
+            active={isSpeaking || status === ConversationStatus.Thinking}
+            label="Sage"
+            tone="speaking"
+          />
+        </div>
         <ConversationControls
           status={status}
           errorMessage={errorMessage}
@@ -62,14 +75,7 @@ export function VoiceAssistant() {
           }}
           onStop={stopConversation}
         />
-      </div>
-
-      <section className="flex min-h-[240px] flex-1 flex-col gap-3 pb-4">
-        <h2 className="shrink-0 text-sm font-semibold uppercase tracking-[0.14em] text-foreground">
-          Live transcript
-        </h2>
-        <TranscriptPanel entries={transcripts} />
-      </section>
+      </footer>
     </div>
   );
 }

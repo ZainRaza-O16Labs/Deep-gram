@@ -16,14 +16,7 @@ import {
 
 const DEFAULT_WS_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001/ws";
-
-function cleanAssistantText(text: string): string {
-  return text
-    .replace(/\*\*/g, "")
-    .replace(/^\s*[-*]\s+/gm, "")
-    .replace(/^\s*\d+\.\s+/gm, "")
-    .trim();
-}
+const SPEAKING_TAIL_MS = 250;
 
 function mergeTranscriptEntry(
   previous: TranscriptEntry[],
@@ -93,6 +86,9 @@ export function useVoiceConversation() {
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const nextPlayTimeRef = useRef(0);
   const pcmLeftoverRef = useRef<Uint8Array<ArrayBuffer>>(new Uint8Array(0));
+  const playbackRateRef = useRef(0);
+  const speakingUntilRef = useRef(0);
+  const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusRef = useRef<ConversationStatus>(ConversationStatus.Idle);
   const shouldReconnectRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
@@ -111,6 +107,12 @@ export function useVoiceConversation() {
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
     pcmLeftoverRef.current = new Uint8Array(0);
+    playbackRateRef.current = 0;
+    speakingUntilRef.current = 0;
+    if (speakingTimerRef.current) {
+      clearTimeout(speakingTimerRef.current);
+      speakingTimerRef.current = null;
+    }
   }, []);
 
   const cleanupMedia = useCallback(() => {
@@ -120,6 +122,37 @@ export function useVoiceConversation() {
     void playbackContextRef.current?.close();
     playbackContextRef.current = null;
   }, [stopPlayback]);
+
+  const stillSpeaking = useCallback(() => {
+    return Date.now() < speakingUntilRef.current + SPEAKING_TAIL_MS;
+  }, []);
+
+  const holdSpeaking = useCallback(
+    (remainingMs: number) => {
+      const now = Date.now();
+      speakingUntilRef.current = Math.max(
+        speakingUntilRef.current,
+        now + remainingMs,
+      );
+      if (statusRef.current !== ConversationStatus.Speaking) {
+        statusRef.current = ConversationStatus.Speaking;
+        setStatus(ConversationStatus.Speaking);
+      }
+      if (speakingTimerRef.current) {
+        clearTimeout(speakingTimerRef.current);
+      }
+      const fireIn = speakingUntilRef.current - now + SPEAKING_TAIL_MS + 30;
+      speakingTimerRef.current = setTimeout(() => {
+        if (!stillSpeaking()) {
+          if (statusRef.current === ConversationStatus.Speaking) {
+            statusRef.current = ConversationStatus.Listening;
+            setStatus(ConversationStatus.Listening);
+          }
+        }
+      }, fireIn);
+    },
+    [stillSpeaking],
+  );
 
   const sendMessage = useCallback((message: ClientToServerMessage) => {
     const socket = socketRef.current;
@@ -164,6 +197,13 @@ export function useVoiceConversation() {
           }
           break;
         case "status":
+          if (
+            stillSpeaking() &&
+            (message.status === ConversationStatus.Listening ||
+              message.status === ConversationStatus.Thinking)
+          ) {
+            break;
+          }
           statusRef.current = message.status;
           setStatus(message.status);
           break;
@@ -178,10 +218,7 @@ export function useVoiceConversation() {
             mergeTranscriptEntry(previous, {
               id: message.entryId,
               role: message.role,
-              text:
-                message.role === SpeakerRole.Assistant
-                  ? cleanAssistantText(message.text)
-                  : message.text,
+              text: message.text,
               isFinal: message.isFinal,
             }),
           );
@@ -196,6 +233,14 @@ export function useVoiceConversation() {
             void context.resume();
           }
 
+          if (
+            playbackRateRef.current &&
+            playbackRateRef.current !== message.sampleRate
+          ) {
+            stopPlayback();
+          }
+          playbackRateRef.current = message.sampleRate;
+
           const { source, endTime, leftover } = playPcmBase64(
             message.data,
             message.sampleRate,
@@ -205,6 +250,9 @@ export function useVoiceConversation() {
           );
           pcmLeftoverRef.current = leftover;
           nextPlayTimeRef.current = endTime;
+          holdSpeaking(
+            Math.max(80, (endTime - context.currentTime) * 1000),
+          );
 
           if (source) {
             activeSourcesRef.current.push(source);
@@ -224,7 +272,7 @@ export function useVoiceConversation() {
           break;
       }
     },
-    [cleanupMedia, ensureMicrophone, stopPlayback],
+    [cleanupMedia, ensureMicrophone, holdSpeaking, stillSpeaking, stopPlayback],
   );
 
   const connect = useCallback(() => {

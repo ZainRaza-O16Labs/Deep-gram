@@ -29,7 +29,7 @@ const STATUS_COLOR: Record<ConversationStatus, string> = {
 export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <div
-      className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1 text-[13px] font-medium text-foreground shadow-sm"
       role="status"
       aria-live="polite"
     >
