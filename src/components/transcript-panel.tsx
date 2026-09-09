@@ -6,6 +6,7 @@ import { SpeakerRole, type TranscriptEntry } from "@/types/conversation";
 
 interface TranscriptPanelProps {
   entries: TranscriptEntry[];
+  assistantName?: string;
   listening?: boolean;
   speaking?: boolean;
   thinking?: boolean;
@@ -45,6 +46,7 @@ function splitWhatsApp(text: string): {
 
 export function TranscriptPanel({
   entries,
+  assistantName = "Assistant",
   listening = false,
   speaking = false,
   thinking = false,
@@ -96,7 +98,7 @@ export function TranscriptPanel({
           <p className="font-display text-2xl text-foreground">Ready when you are</p>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">
             {idle
-              ? "Start a conversation, then talk. Sage picks up when you finish a thought."
+              ? `Start a conversation, then talk. ${assistantName} picks up when you finish a thought.`
               : "Listening… say something when you’re ready."}
           </p>
         </div>
@@ -118,7 +120,7 @@ export function TranscriptPanel({
                 }`}
               >
                 <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  {isUser ? "You" : "Sage"}
+                  {isUser ? "You" : assistantName}
                   {!entry.isFinal ? " · …" : ""}
                 </span>
                 {isUser ? (
@@ -131,7 +133,7 @@ export function TranscriptPanel({
                   </p>
                 ) : isEmptyAssistant ? (
                   <div className="rounded-2xl rounded-bl-md border border-border bg-white px-4 py-2.5 text-sm text-muted shadow-sm">
-                    Sage is thinking…
+                    {assistantName} is thinking…
                   </div>
                 ) : (
                   <div
@@ -188,11 +190,11 @@ export function TranscriptPanel({
             );
           })}
           {thinking ? (
-            <p className="px-1 text-xs text-muted">Sage is thinking…</p>
+            <p className="px-1 text-xs text-muted">{assistantName} is thinking…</p>
           ) : listening ? (
             <p className="px-1 text-xs text-muted">Listening…</p>
           ) : speaking ? (
-            <p className="px-1 text-xs text-muted">Sage is speaking…</p>
+            <p className="px-1 text-xs text-muted">{assistantName} is speaking…</p>
           ) : null}
         </div>
       )}

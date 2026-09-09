@@ -99,9 +99,17 @@ const rootEnv = {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: path.join(__dirname, "../.."),
+  turbopack: {
+    root: path.join(__dirname, "../.."),
+  },
   env: {
     NEXT_PUBLIC_WS_URL:
       rootEnv.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || "",
+    NEXT_PUBLIC_BACKEND_HTTP_URL:
+      rootEnv.NEXT_PUBLIC_BACKEND_HTTP_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_HTTP_URL ||
+      "",
     ...publicVoiceEnv(rootEnv),
   },
 };
