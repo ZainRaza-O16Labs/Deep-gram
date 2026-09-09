@@ -21,14 +21,35 @@ export interface TranscriptEntry {
   timestamp: number;
 }
 
+import type { AgentSummary } from "@hey-sage/shared";
+
+export type PublicAgent = AgentSummary;
+
+export type SessionAgent = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 export type ClientToServerMessage =
-  | { type: "start_session"; speakModel?: string; elevenLabsVoiceId?: string }
+  | {
+      type: "start_session";
+      agentId?: string;
+      sessionId?: string;
+      conversationId?: string;
+      speakModel?: string;
+    }
   | { type: "stop_session" }
   | { type: "audio"; data: string }
   | { type: "user_text"; text: string };
 
 export type ServerToClientMessage =
-  | { type: "session_started"; sessionId: string }
+  | {
+      type: "session_started";
+      sessionId: string;
+      conversationId: string;
+      agent: SessionAgent;
+    }
   | { type: "session_stopped" }
   | { type: "status"; status: ConversationStatus }
   | { type: "user_started_speaking" }

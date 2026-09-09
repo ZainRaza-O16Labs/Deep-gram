@@ -15,8 +15,73 @@ import {
 } from "@/types/conversation";
 
 const DEFAULT_WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001/ws";
+  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:4111/ws";
 const SPEAKING_TAIL_MS = 250;
+const BROWSER_SESSION_ID_KEY = "hey-sage.browser-session-id";
+/** Auto mode stores its own conversation so "best agent" resumes continuity. */
+const AUTO_CONVERSATION_KEY = "hey-sage.conversation.auto";
+
+function storageKeyForAgent(agentId: string | null): string {
+  return agentId ? `hey-sage.conversation.${agentId}` : AUTO_CONVERSATION_KEY;
+}
+
+function readStoredConversation(agentId: string | null): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(storageKeyForAgent(agentId));
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { conversationId?: string } | null;
+    return parsed?.conversationId && typeof parsed.conversationId === "string"
+      ? parsed.conversationId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredConversation(
+  agentId: string | null,
+  conversationId: string | null,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (!conversationId) {
+      window.localStorage.removeItem(storageKeyForAgent(agentId));
+      return;
+    }
+
+    window.localStorage.setItem(
+      storageKeyForAgent(agentId),
+      JSON.stringify({ conversationId }),
+    );
+  } catch {
+    // Ignore storage quota or browser privacy issues.
+  }
+}
+
+function getBrowserSessionId(): string {
+  if (typeof window === "undefined") {
+    return crypto.randomUUID();
+  }
+
+  const existing = window.sessionStorage.getItem(BROWSER_SESSION_ID_KEY);
+  if (existing && existing.trim()) {
+    return existing;
+  }
+
+  const next = crypto.randomUUID();
+  window.sessionStorage.setItem(BROWSER_SESSION_ID_KEY, next);
+  return next;
+}
 
 function mergeTranscriptEntry(
   previous: TranscriptEntry[],
@@ -79,6 +144,7 @@ export function useVoiceConversation() {
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const micRef = useRef<MicrophoneStream | null>(null);
@@ -92,9 +158,17 @@ export function useVoiceConversation() {
   const statusRef = useRef<ConversationStatus>(ConversationStatus.Idle);
   const shouldReconnectRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
+  const connectRef = useRef<(() => void) | null>(null);
+  const agentIdRef = useRef<string | null>(null);
+  const conversationIdRef = useRef<string | null>(null);
+  const browserSessionIdRef = useRef<string>(getBrowserSessionId());
+  const [activeAgent, setActiveAgent] = useState<{
+    id: string;
+    name: string;
+    description: string;
+  } | null>(null);
   /** Speak model chosen before Start; reused on reconnect. */
   const speakModelRef = useRef<string | undefined>(undefined);
-  const elevenLabsVoiceIdRef = useRef<string | undefined>(undefined);
 
   const stopPlayback = useCallback(() => {
     activeSourcesRef.current.forEach((source) => {
@@ -182,6 +256,12 @@ export function useVoiceConversation() {
       switch (message.type) {
         case "session_started":
           setSessionId(message.sessionId);
+          conversationIdRef.current = message.conversationId;
+          setConversationId(message.conversationId);
+          if (agentIdRef.current) {
+            writeStoredConversation(agentIdRef.current, message.conversationId);
+          }
+          setActiveAgent(message.agent);
           statusRef.current = ConversationStatus.Listening;
           setStatus(ConversationStatus.Listening);
           void ensureMicrophone();
@@ -193,6 +273,7 @@ export function useVoiceConversation() {
             statusRef.current = ConversationStatus.Idle;
             setStatus(ConversationStatus.Idle);
             setSessionId(null);
+            setConversationId(null);
             cleanupMedia();
           }
           break;
@@ -300,13 +381,23 @@ export function useVoiceConversation() {
 
     socket.onopen = () => {
       reconnectAttemptsRef.current = 0;
+      const agentId = agentIdRef.current;
+
+      const storedConversationId = readStoredConversation(agentId);
+      if (storedConversationId && !conversationIdRef.current) {
+        conversationIdRef.current = storedConversationId;
+        setConversationId(storedConversationId);
+      }
+
       sendMessage({
         type: "start_session",
+        ...(agentId ? { agentId } : {}),
+        sessionId: browserSessionIdRef.current,
+        ...(conversationIdRef.current
+          ? { conversationId: conversationIdRef.current }
+          : {}),
         ...(speakModelRef.current
           ? { speakModel: speakModelRef.current }
-          : {}),
-        ...(elevenLabsVoiceIdRef.current
-          ? { elevenLabsVoiceId: elevenLabsVoiceIdRef.current }
           : {}),
       });
     };
@@ -353,16 +444,25 @@ export function useVoiceConversation() {
 
       setStatus(ConversationStatus.Connecting);
       window.setTimeout(() => {
-        connect();
+        connectRef.current?.();
       }, Math.min(1000 * attempt, 5000));
     };
   }, [cleanupMedia, handleServerMessage, sendMessage, stopPlayback]);
 
+  useEffect(() => {
+    connectRef.current = connect;
+    return () => {
+      connectRef.current = null;
+    };
+  }, [connect]);
+
   const startConversation = useCallback(
-    async (speakModel?: string, elevenLabsVoiceId?: string) => {
+    async (agentId: string | null, speakModel?: string) => {
       try {
+        agentIdRef.current = agentId;
+        conversationIdRef.current = readStoredConversation(agentId) ?? null;
+        setConversationId(conversationIdRef.current);
         speakModelRef.current = speakModel;
-        elevenLabsVoiceIdRef.current = elevenLabsVoiceId;
         setTranscripts([]);
         setErrorMessage(null);
         shouldReconnectRef.current = true;
@@ -394,6 +494,8 @@ export function useVoiceConversation() {
     }
 
     setSessionId(null);
+    setConversationId(null);
+    setActiveAgent(null);
     setStatus(ConversationStatus.Idle);
   }, [cleanupMedia, sendMessage]);
 
@@ -410,6 +512,8 @@ export function useVoiceConversation() {
     transcripts,
     errorMessage,
     sessionId,
+    conversationId,
+    activeAgent,
     isListening: status === ConversationStatus.Listening,
     isSpeaking: status === ConversationStatus.Speaking,
     isUserTurn:
